@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { View, Text, FlatList, Button } from "react-native";
+import { View, Text, FlatList, Button, Alert } from "react-native";
 import axios from "axios";
 
 const CHAT_SERVER = "YOUR NGROK HTTPS URL";
@@ -57,21 +57,61 @@ class Rooms extends Component {
     return (
       <View style={styles.list_item}>
         <Text style={styles.list_item_text}>{item.name}</Text>
-        <Button title="Enter" color="#0064e1" onPress={() => {
-          this.enterChat(item);
-        }} />
+        {
+          item.joined &&
+          <Button title="Enter" color="#0064e1" onPress={() => {
+            this.enterChat(item);
+          }} />
+        }
+        {
+          !item.joined &&
+          <Button title="Join" color="#484848" onPress={() => {
+            this.joinRoom(item);
+          }} />
+        }
       </View>
     );
+  }
+
+
+  goToChatScreen = (response, room) => {
+    const { is_room_leader, is_room_member, is_new_room_member } = response.data;
+
+    this.props.navigation.navigate("Chat", {
+      user_id: this.user_id,
+      room_id: room.id,
+      room_name: room.name,
+      is_room_leader,
+      is_room_member,
+      is_new_room_member
+    });
   }
 
   //
 
   enterChat = async (room) => {
-    this.props.navigation.navigate("Chat", {
-      user_id: this.user_id,
-      room_id: room.id,
-      room_name: room.name
-    });
+    try {
+      const response = await axios.post(`${CHAT_SERVER}/user/permissions`, { room_id: room.id, user_id: this.user_id });
+
+      this.goToChatScreen(response, room);
+
+    } catch (get_permissions_err) {
+      console.log("error getting permissions: ", get_permissions_err);
+    }
+  };
+
+
+  joinRoom = async (room) => {
+    try {
+      const response = await axios.post(`${CHAT_SERVER}/user/join`, { room_id: room.id, user_id: this.user_id });
+
+      Alert.alert("Joined Room", `You are now a member of [${room.name}]`);
+
+      this.goToChatScreen(response, room);
+
+    } catch (join_room_err) {
+      console.log("error joining room: ", join_room_err);
+    }
   }
 
 }

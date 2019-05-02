@@ -1,7 +1,8 @@
 import React, { Component } from "react";
-import { View, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert, Button } from "react-native";
 import { GiftedChat, Send, Message } from "react-native-gifted-chat";
 import { ChatManager, TokenProvider } from "@pusher/chatkit-client";
+import axios from "axios";
 import Config from "react-native-config";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { DocumentPicker, DocumentPickerUtil } from "react-native-document-picker";
@@ -9,6 +10,7 @@ import * as mime from "react-native-mime-types";
 import Modal from "react-native-modal";
 import RNFS from "react-native-fs";
 import RNFetchBlob from "rn-fetch-blob";
+import RNPickerSelect from "react-native-picker-select";
 
 const Blob = RNFetchBlob.polyfill.Blob;
 const fs = RNFetchBlob.fs;
@@ -30,10 +32,19 @@ class Chat extends Component {
       headerRight: (
         <View style={styles.header_right}>
           <TouchableOpacity style={styles.header_button_container} onPress={params.showUsersModal}>
-            <View>
+            <View style={styles.header_button}>
               <Text style={styles.header_button_text}>Users</Text>
             </View>
           </TouchableOpacity>
+
+          {
+            params.is_room_leader &&
+            <TouchableOpacity style={styles.header_button_container} onPress={params.showAddUserModal}>
+              <View style={styles.header_button}>
+                <Text style={styles.header_button_text}>Add User</Text>
+              </View>
+            </TouchableOpacity>
+          }
         </View>
 
       ),
@@ -45,7 +56,6 @@ class Chat extends Component {
       }
     };
   };
-
   //
 
   state = {
@@ -55,10 +65,13 @@ class Chat extends Component {
     is_picking_file: false,
 
     is_users_modal_visible: false,
+    is_add_user_modal_visible: false,
 
     is_typing: false,
     typing_user: null,
-    show_load_earlier: false
+    show_load_earlier: false,
+
+    user_to_add: ''
   };
 
 
@@ -69,11 +82,15 @@ class Chat extends Component {
     this.user_id = navigation.getParam("user_id");
     this.room_id = navigation.getParam("room_id");
 
+    this.is_room_leader = navigation.getParam("is_room_leader");
+    this.is_room_member = navigation.getParam("is_room_member");
+    this.is_new_room_member = navigation.getParam("is_new_room_member");
+
     this.modal_types = {
-      users: 'is_users_modal_visible'
+      users: 'is_users_modal_visible',
+      add_user: 'is_add_user_modal_visible'
     };
   }
-
   //
 
   async componentDidMount() {
@@ -104,9 +121,23 @@ class Chat extends Component {
         }
       });
 
+      let user_options = [];
+      if (this.is_room_leader) {
+        const response = await axios.get(`${CHAT_SERVER}/get-users`);
+        const { users } = response.data;
+
+        user_options = users.map((item) => {
+          return {
+            label: item.name,
+            value: item.id
+          };
+        });
+      }
+
       await this.setState({
         is_initialized: true,
-        room_users: this.currentUser.users
+        room_users: this.currentUser.users,
+        users: user_options
       });
 
     } catch (chat_mgr_err) {
@@ -155,7 +186,6 @@ class Chat extends Component {
       }
     }
   }
-
   //
 
   onReceive = async (data) => {
@@ -259,7 +289,6 @@ class Chat extends Component {
       await callback(array[index], index, array);
     }
   };
-
   //
 
   render() {
@@ -269,8 +298,11 @@ class Chat extends Component {
       room_users,
       messages,
       is_users_modal_visible,
+      is_add_user_modal_visible,
       show_load_earlier,
-      typing_user
+      typing_user,
+      users,
+      user_to_add
     } = this.state;
 
     return (
@@ -323,12 +355,68 @@ class Chat extends Component {
             </View>
           </Modal>
         }
+
+        {
+          <Modal isVisible={is_add_user_modal_visible}>
+            <View style={styles.modal}>
+              <View style={styles.modal_header}>
+                <Text style={styles.modal_header_text}>Add User</Text>
+                <TouchableOpacity onPress={this.hideModal.bind(this, 'add_user')}>
+                  <Icon name={"close"} size={20} color={"#565656"} style={styles.close} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modal_body}>
+                <Text style={styles.label}>Enter username</Text>
+                {
+                  users &&
+                  <RNPickerSelect
+                    items={users}
+                    onValueChange={value => {
+                      this.setState({
+                        user_to_add: value,
+                      });
+                    }}
+                    value={user_to_add}
+                  />
+                }
+                <View style={styles.button_container}>
+                  <Button title="Add" color="#0064e1" onPress={this.addUserToRoom} />
+                </View>
+              </View>
+            </View>
+          </Modal>
+        }
       </View>
     );
+  }
+  //
+
+  addUserToRoom = async () => {
+    const { user_to_add } = this.state;
+    try {
+      await this.currentUser.addUserToRoom({
+        userId: user_to_add,
+        roomId: this.room_id
+      });
+
+      Alert.alert('User Added', 'User was successfully added to the room.');
+
+      this.setState({
+        is_add_user_modal_visible: false
+      });
+
+    } catch (add_user_to_room_err) {
+      console.log("error adding user to room: ", add_user_to_room_err);
+    }
   }
 
 
   renderCustomActions = () => {
+    if (this.is_new_room_member) {
+      return null;
+    }
+
     if (!this.state.is_picking_file) {
       const icon_color = this.attachment ? "#0064e1" : "#808080";
       return (
@@ -347,7 +435,6 @@ class Chat extends Component {
     );
   }
   //
-
 
   renderFooter = () => {
     const { is_typing, typing_user } = this.state;
@@ -433,6 +520,13 @@ class Chat extends Component {
   }
 
 
+  showAddUserModal = () => {
+    this.setState({
+      is_add_user_modal_visible: true
+    });
+  }
+
+
   hideModal = (type) => {
     const modal = this.modal_types[type];
     this.setState({
@@ -451,12 +545,31 @@ class Chat extends Component {
             <View style={[styles.status_indicator, styles[online_status]]}></View>
             <Text style={styles.list_item_text}>{item.name}</Text>
           </View>
+          {
+            this.is_room_leader &&
+            <View>
+              <Button title="Remove" color="#d73a49" onPress={() => this.removeUserFromRoom(item.id)} />
+            </View>
+          }
         </View>
       </View>
     );
   }
-
   //
+
+  removeUserFromRoom = async (id) => {
+    try {
+      await this.currentUser.removeUserFromRoom({
+        userId: id,
+        roomId: this.room_id
+      });
+
+      Alert.alert('Removed User', 'User was successfully removed from the room.');
+    } catch (remove_user_err) {
+      console.log("error removing user from room: ", remove_user_err);
+    }
+  }
+
 
   loadEarlierMessages = async () => {
     this.setState({
@@ -601,6 +714,9 @@ const styles = {
   },
   label: {
     fontSize: 16
+  },
+  button_container: {
+    marginTop: 20
   }
 }
 

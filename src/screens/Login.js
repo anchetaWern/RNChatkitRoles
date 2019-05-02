@@ -11,7 +11,7 @@ class Login extends Component {
 
 
   state = {
-    username: "Root",
+    username: "",
     is_loading: false
   };
 
