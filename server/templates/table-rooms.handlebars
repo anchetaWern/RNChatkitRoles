@@ -1,0 +1,13 @@
+{{#each rooms}}
+<tr>
+  <td>
+    {{name}}
+  </td>
+  <td>
+    <button type="button" class="btn btn-sm btn-warning view-users" data-id="{{id}}" data-name="{{name}}">View Users</button>
+  </td>
+  <td>
+    <button type="button" class="btn btn-sm btn-info add-user" data-id="{{id}}" data-name="{{name}}">Add User</button>
+  </td>
+</tr>
+{{/each}}

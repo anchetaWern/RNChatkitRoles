@@ -1,0 +1,7 @@
+<label>Permissions</label>
+{{#each permissions}}
+<div class="form-check">
+	<input type="checkbox" class="form-check-input" name="permission" id="{{.}}" value="{{.}}">
+	<label class="form-check-label" for="{{.}}">{{.}}</label>
+</div>
+{{/each}}
