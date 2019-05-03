@@ -184,9 +184,6 @@ $('#assign-role-to-user').click(function() {
     {
       'room_id': current_room_id,
       'role_name': role
-    },
-    function(res) {
-      console.log("res: ", res);
     }
   );
 
