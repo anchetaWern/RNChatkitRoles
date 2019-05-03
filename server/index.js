@@ -93,6 +93,7 @@ function getPermissions(permissions) {
 }
 
 
+
 app.post("/user/join", async (req, res) => {
   const { room_id, user_id } = req.body;
   try {
@@ -107,11 +108,11 @@ app.post("/user/join", async (req, res) => {
       roomId: room_id
     });
 
-    const roles = await chatkit.getUserRoles({ userId: user_id });
-    const role = roles.find(role => role.room_id == room_id);
-    const permissions = (role) ? role.permissions : [];
-
-    const permissions_bool = getPermissions(permissions);
+    const permissions_bool = {
+      is_new_room_member: true,
+      is_room_member: false,
+      is_room_leader: false
+    };
 
     res.send(permissions_bool);
   } catch (user_permissions_err) {
