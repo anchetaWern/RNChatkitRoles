@@ -357,6 +357,7 @@ class Chat extends Component {
         }
 
         {
+          this.is_room_leader &&
           <Modal isVisible={is_add_user_modal_visible}>
             <View style={styles.modal}>
               <View style={styles.modal_header}>
