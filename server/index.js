@@ -6,8 +6,6 @@ const mustacheExpress = require("mustache-express");
 const randomId = require("random-id");
 
 require("dotenv").config();
-const app = express();
-
 const INSTANCE_LOCATOR_ID = process.env.CHATKIT_INSTANCE_LOCATOR_ID;
 const CHATKIT_SECRET = process.env.CHATKIT_SECRET_KEY;
 
@@ -15,6 +13,8 @@ const chatkit = new Chatkit.default({
   instanceLocator: `v1:us1:${INSTANCE_LOCATOR_ID}`,
   key: CHATKIT_SECRET
 });
+
+const app = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
