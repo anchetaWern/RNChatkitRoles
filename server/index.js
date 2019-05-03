@@ -75,66 +75,6 @@ app.post("/rooms", async (req, res) => {
   }
 });
 
-const new_room_member_permissions = ['room:messages:get', 'message:create', 'room:typing_indicator:create', 'file:get'];
-const room_member_permissions = new_room_member_permissions.concat(['file:create']);
-const room_leader_permissions = room_member_permissions.concat(['room:members:add', 'room:members:remove']);
-
-const new_room_member_permissions_str = JSON.stringify(new_room_member_permissions.sort());
-const room_member_permissions_str = JSON.stringify(room_member_permissions.sort());
-const room_leader_permissions_str = JSON.stringify(room_leader_permissions.sort());
-
-function getPermissions(permissions) {
-  const permissions_str = JSON.stringify(permissions.sort());
-
-  const is_new_room_member = (new_room_member_permissions_str === permissions_str);
-  const is_room_member = (room_member_permissions_str === permissions_str);
-  const is_room_leader = (room_leader_permissions_str === permissions_str);
-  return { is_new_room_member, is_room_member, is_room_leader };
-}
-
-
-app.post("/user/join", async (req, res) => {
-  const { room_id, user_id } = req.body;
-  try {
-    await chatkit.addUsersToRoom({
-      roomId: room_id,
-      userIds: [user_id]
-    });
-
-    await chatkit.assignRoomRoleToUser({
-      userId: user_id,
-      name: 'new_room_member',
-      roomId: room_id
-    });
-
-    const roles = await chatkit.getUserRoles({ userId: user_id });
-    const role = roles.find(role => role.room_id == room_id);
-    const permissions = (role) ? role.permissions : [];
-
-    const permissions_bool = getPermissions(permissions);
-
-    res.send(permissions_bool);
-  } catch (user_permissions_err) {
-    console.log("error getting user permissions: ", user_permissions_err);
-  }
-});
-
-
-app.post("/user/permissions", async (req, res) => {
-  const { room_id, user_id } = req.body;
-  try {
-    const roles = await chatkit.getUserRoles({ userId: user_id });
-    const role = roles.find(role => role.room_id == room_id);
-    const permissions = (role) ? role.permissions : [];
-
-    const permissions_bool = getPermissions(permissions);
-
-    res.send(permissions_bool);
-  } catch (user_permissions_err) {
-    console.log("error getting user permissions: ", user_permissions_err);
-  }
-});
-
 
 app.get("/users-console", async (req, res) => {
   try {
