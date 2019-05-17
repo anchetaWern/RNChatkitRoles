@@ -1,6 +1,11 @@
 # RNChatkitRoles
 A sample React Native chat app built with Chatkit which implements roles and permissions.
 
+Full tutorial is available at: 
+
+- [Chatkit roles and permissions in a React Native chat app - Part 1: Setting permissions in the server](https://pusher.com/tutorials/chatkit-react-native-permissions-part-1)
+- [Chatkit roles and permissions in a React Native chat app - Part 2: Setting permissions in the client](https://pusher.com/tutorials/chatkit-react-native-permissions-part-2)
+
 The app has the following features:
 
 - Public and private rooms.
